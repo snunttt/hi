@@ -20,26 +20,29 @@ while not localPlayer do
     localPlayer = Players.LocalPlayer
 end
 
-local char = localPlayer.Character
-if char then
-    local hum = char:FindFirstChildWhichIsA("Humanoid")
-    if hum then
-        hum.Health = -1
+-- Kill on first load and every respawn
+local function killCharacter(char)
+    if char then
+        local hum = char:FindFirstChildWhichIsA("Humanoid")
+        if hum then hum.Health = -1 end
     end
 end
 
+killCharacter(localPlayer.Character)
+localPlayer.CharacterAdded:Connect(killCharacter)
+
+-- Auto-join loop
 local join = RS:FindFirstChild("Remotes") and RS.Remotes:FindFirstChild("Matchmaking") and RS.Remotes.Matchmaking:FindFirstChild("JoinQueue")
 if join then
     task.spawn(function()
         while true do
-            pcall(function()
-                join:InvokeServer("1v1")
-            end)
+            pcall(function() join:InvokeServer("1v1") end)
             task.wait(2)
         end
     end)
 end
 
+-- GUI (created once, persists)
 pcall(function()
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "TestGUI"
