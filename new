@@ -1,0 +1,41 @@
+local function getRealGame()
+    local g = game
+    if g.Name == "Ugc" then
+        local env = getrenv and getrenv() or getgenv and getgenv() or shared or {}
+        g = env.game or g
+        if type(g) == "userdata" and g.Name == "Ugc" then
+            g = cloneref and cloneref(game) or game
+        end
+    end
+    return g
+end
+
+local realGame = getRealGame()
+local Players = realGame:GetService("Players")
+local RS = realGame:GetService("ReplicatedStorage")
+
+local localPlayer = Players.LocalPlayer
+while not localPlayer do
+    Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
+    localPlayer = Players.LocalPlayer
+end
+
+local char = localPlayer.Character
+if char then
+    local hum = char:FindFirstChildWhichIsA("Humanoid")
+    if hum then
+        hum.Health = -1
+    end
+end
+
+local join = RS:FindFirstChild("Remotes") and RS.Remotes:FindFirstChild("Matchmaking") and RS.Remotes.Matchmaking:FindFirstChild("JoinQueue")
+if join then
+    task.spawn(function()
+        while true do
+            pcall(function()
+                join:InvokeServer("1v1")
+            end)
+            task.wait(2)
+        end
+    end)
+end
