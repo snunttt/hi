@@ -1,69 +1,77 @@
 local function getRealGame()
     local g = game
+
     if g.Name == "Ugc" then
-        local env = getrenv and getrenv() or getgenv and getgenv() or shared or {}
+        local env = (getrenv and getrenv()) or (getgenv and getgenv()) or shared or {}
+
         g = env.game or g
-        if type(g) == "userdata" and g.Name == "Ugc" then
-            g = cloneref and cloneref(game) or game
+
+        if typeof(g) == "userdata" and g.Name == "Ugc" then
+            g = (cloneref and cloneref(game)) or game
         end
     end
+
     return g
 end
 
 local realGame = getRealGame()
+
 local Players = realGame:GetService("Players")
 local RS = realGame:GetService("ReplicatedStorage")
 
 local localPlayer = Players.LocalPlayer
+
 while not localPlayer do
     Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
     localPlayer = Players.LocalPlayer
 end
 
--- Kill on first load and every respawn
+
 local function killCharacter(char)
-    if char then
-        local hum = char:FindFirstChildWhichIsA("Humanoid")
-        if hum then hum.Health = -1 end
+    if not char then return end
+
+    local hum = char:FindFirstChildWhichIsA("Humanoid")
+
+    if hum then
+        hum.Health = -1
     end
 end
 
-killCharacter(localPlayer.Character)
-localPlayer.CharacterAdded:Connect(killCharacter)
 
--- Auto-join loop
-local join = RS:FindFirstChild("Remotes") and RS.Remotes:FindFirstChild("Matchmaking") and RS.Remotes.Matchmaking:FindFirstChild("JoinQueue")
+local function getJoinRemote()
+    local remotes = RS:FindFirstChild("Remotes")
+    local matchmaking = remotes and remotes:FindFirstChild("Matchmaking")
+
+    return matchmaking and matchmaking:FindFirstChild("JoinQueue")
+end
+
+
+local join = getJoinRemote()
+
 if join then
     task.spawn(function()
         while true do
-            pcall(function() join:InvokeServer("1v1") end)
+            pcall(function()
+                join:InvokeServer("1v1")
+            end)
+
             task.wait(2)
         end
     end)
 end
 
--- GUI (created once, persists)
-pcall(function()
-    local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "TestGUI"
-    screenGui.ResetOnSpawn = false
-    screenGui.Parent = localPlayer:WaitForChild("PlayerGui")
 
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 200, 0, 100)
-    frame.Position = UDim2.new(0.5, -100, 0.5, -50)
-    frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    frame.BackgroundTransparency = 0.5
-    frame.BorderSizePixel = 0
-    frame.Parent = screenGui
+-- handles reset/respawn
+localPlayer.CharacterAdded:Connect(function(char)
+    task.wait(0.5)
 
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, 0, 1, 0)
-    label.BackgroundTransparency = 1
-    label.Text = "Script Loaded\n" .. os.date("%H:%M:%S")
-    label.TextColor3 = Color3.new(1, 1, 1)
-    label.TextSize = 20
-    label.Font = Enum.Font.SourceSansBold
-    label.TextWrapped = true
-    label.Parent = frame
+    killCharacter(char)
+
+    join = getJoinRemote()
 end)
+
+
+-- kill current character if already spawned
+if localPlayer.Character then
+    killCharacter(localPlayer.Character)
+end
